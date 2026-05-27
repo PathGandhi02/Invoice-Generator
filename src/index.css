@@ -503,11 +503,11 @@ input:checked + .slider:before {
 }
 
 .invoice-logo-wrapper {
-  max-width: 280px;
+  max-width: 420px;
 }
 
 .invoice-logo-img {
-  max-height: 85px;
+  max-height: 145px;
   width: auto;
   object-fit: contain;
 }
@@ -626,21 +626,16 @@ input:checked + .slider:before {
 }
 
 .invoice-table th.col-plan, .invoice-table td.col-plan {
-  width: 45%;
+  width: 55%;
 }
 
 .invoice-table th.col-qty, .invoice-table td.col-qty {
-  width: 20%;
+  width: 25%;
   text-align: center;
 }
 
-.invoice-table th.col-price, .invoice-table td.col-price {
-  width: 18%;
-  text-align: right;
-}
-
 .invoice-table th.col-amount, .invoice-table td.col-amount {
-  width: 17%;
+  width: 20%;
   text-align: right;
 }
 
@@ -949,5 +944,171 @@ input:checked + .slider:before {
     left: 1rem;
     right: 1rem;
     max-width: none;
+  }
+}
+
+/* ==========================================================================
+   Mobile Workspace Responsiveness (Tab Swappers & Floating Actions)
+   ========================================================================== */
+
+/* Mobile Sticky Tab Switcher */
+.mobile-tabs-container {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--dash-panel-border);
+  padding: 0.75rem 1rem;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.mobile-tab-btn {
+  flex: 1;
+  background: var(--dash-input-bg);
+  border: 1px solid var(--dash-input-border);
+  color: var(--dash-text-muted);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--transition-fast);
+}
+
+.mobile-tab-btn:hover {
+  color: var(--dash-text-heading);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-tab-btn.active {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Mobile Quick Action Buttons Bar */
+.mobile-actions-bar {
+  display: none;
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  right: 1.5rem;
+  z-index: 999;
+  gap: 0.75rem;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-action-btn-primary {
+  flex: 1.3;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.95rem 1rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+  transition: var(--transition-fast);
+}
+
+.mobile-action-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.mobile-action-btn-secondary {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  color: var(--dash-text-heading);
+  border: 1px solid var(--dash-panel-border);
+  border-radius: 12px;
+  padding: 0.95rem 1rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  transition: var(--transition-fast);
+}
+
+.mobile-action-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Tablet & Mobile Layout Adaptations (<= 1100px) */
+@media (max-width: 1100px) {
+  .mobile-tabs-container {
+    display: flex;
+  }
+
+  .mobile-actions-bar {
+    display: flex;
+  }
+
+  .app-container {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+    max-height: none !important;
+    overflow: auto !important;
+    height: 100vh;
+  }
+
+  /* Visibility Toggles based on active mobile tab */
+  .dashboard-sidebar.mobile-hidden,
+  .preview-pane.mobile-hidden {
+    display: none !important;
+  }
+
+  .dashboard-sidebar.mobile-visible {
+    display: flex !important;
+    height: calc(100vh - 56px) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    border-right: none;
+    border-bottom: 1px solid var(--dash-panel-border);
+    box-shadow: none;
+    padding-bottom: 3rem; /* padding for content clearance */
+  }
+
+  .preview-pane.mobile-visible {
+    display: flex !important;
+    height: calc(100vh - 56px) !important;
+    overflow-y: auto !important;
+    padding: 1.5rem 1rem 7rem 1rem !important; /* extra padding to clear floating buttons */
+  }
+
+  /* Hide print options from sidebar inside mobile tabs since they are on floating bar */
+  .dashboard-sidebar.mobile-visible .action-buttons {
+    display: none !important;
   }
 }

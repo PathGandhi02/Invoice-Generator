@@ -3,6 +3,23 @@ import html2pdf from 'html2pdf.js';
 import Dashboard from './components/Dashboard';
 import InvoicePreview from './components/InvoicePreview';
 
+const getTodayString = () => {
+  const date = new Date();
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const getFutureDateString = (daysAhead) => {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 const INITIAL_INVOICE_DATA = {
   companyName: 'Maruti Giga Fiber',
   address1: 'Ajay Electronics',
@@ -11,21 +28,23 @@ const INITIAL_INVOICE_DATA = {
   country: 'IN',
   phone: '9925559411',
   email: 'marutigigafiber@gmail.com',
-  customerName: 'JIGARBHAI BHARATBHAI SONI',
-  customerPhone: '+91 942 670 111 7',
-  invoiceNumber: '2025-2024/403',
-  startDate: '24 Mar 2024',
-  dueDate: '27 Mar 2024',
+  customerName: '',
+  customerPhone: '+91 ',
+  invoiceNumber: '2027-2026/5678',
+  startDate: getTodayString(),
+  dueDate: getFutureDateString(3),
   planName: '100 Mbps Unlimited',
-  planSubtext: 'For 12 Months',
-  timePeriod: '1',
-  price: 11400,
+  planSubtext: '',
+  timePeriod: '12 months',
+  price: 0,
   currencySymbol: '₹',
   isPaid: false,
   paymentMethod: '',
   showQr: true,
   qrType: 'upi',
   upiId: 'manish10gandhi-1@okhdfcbank', // Preloaded business UPI ID
+  discount: 0,
+  installationCharges: 0,
   customLogo: null,
   customQr: null
 };
@@ -34,6 +53,7 @@ export default function App() {
   const [invoiceData, setInvoiceData] = useState(INITIAL_INVOICE_DATA);
   const [activeColor, setActiveColor] = useState('#f3f4f6');
   const [toast, setToast] = useState(null);
+  const [activeTab, setActiveTab] = useState('edit'); // 'edit' or 'preview'
   const invoiceRef = useRef(null);
 
   // Field change handler
@@ -149,6 +169,22 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Mobile Sticky Tab Switcher (Only visible on screens <= 1100px) */}
+      <div className="mobile-tabs-container">
+        <button
+          className={`mobile-tab-btn ${activeTab === 'edit' ? 'active' : ''}`}
+          onClick={() => setActiveTab('edit')}
+        >
+          ✏️ Edit Details
+        </button>
+        <button
+          className={`mobile-tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('preview')}
+        >
+          👁️ View Invoice
+        </button>
+      </div>
+
       {/* Sidebar Controls Panel */}
       <Dashboard
         invoiceData={invoiceData}
@@ -160,6 +196,7 @@ export default function App() {
         onExportPdf={handleExportPdf}
         activeColor={activeColor}
         setActiveColor={setActiveColor}
+        className={activeTab === 'edit' ? 'mobile-visible' : 'mobile-hidden'}
       />
 
       {/* Invoice Realtime Interactive Preview */}
@@ -167,7 +204,20 @@ export default function App() {
         invoiceData={invoiceData}
         activeColor={activeColor}
         innerRef={invoiceRef}
+        className={activeTab === 'preview' ? 'mobile-visible' : 'mobile-hidden'}
       />
+
+      {/* Mobile Floating Quick Action Bar (Only visible in Preview tab on screens <= 1100px) */}
+      {activeTab === 'preview' && (
+        <div className="mobile-actions-bar">
+          <button className="mobile-action-btn-primary" onClick={handleExportPdf}>
+            <span>⬇️ Export PDF</span>
+          </button>
+          <button className="mobile-action-btn-secondary" onClick={() => window.print()}>
+            <span>🖨️ Print</span>
+          </button>
+        </div>
+      )}
 
       {/* Dynamic Assistance Toast */}
       {toast && (

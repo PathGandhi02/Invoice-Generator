@@ -19,7 +19,8 @@ export default function Dashboard({
   onResetQr,
   onExportPdf,
   activeColor,
-  setActiveColor
+  setActiveColor,
+  className
 }) {
   // Handle accordion collapsed state
   const [activeSection, setActiveSection] = useState('branding');
@@ -29,7 +30,7 @@ export default function Dashboard({
   };
 
   return (
-    <aside className="dashboard-sidebar">
+    <aside className={`dashboard-sidebar ${className || ''}`}>
       {/* Sidebar Header */}
       <div className="dashboard-header">
         <div className="dashboard-logo-title">
