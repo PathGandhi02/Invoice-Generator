@@ -117,7 +117,7 @@ export default function App() {
 
     // Customize configuration for crisp print
     const opt = {
-      margin: 0.3,
+      margin: 0,
       filename: filename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {

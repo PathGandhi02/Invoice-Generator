@@ -85,7 +85,6 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef, cla
         {invoiceData.isPaid && (
           <div className="paid-watermark-stamp">
             <span>PAID</span>
-            <span className="stamp-date">{formatDate(invoiceData.startDate) || 'SUCCESS'}</span>
           </div>
         )}
 
