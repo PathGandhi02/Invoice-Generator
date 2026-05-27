@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import defaultLogo from '../assets/logo.jpg';
 
-export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
+export default function InvoicePreview({ invoiceData, activeColor, innerRef, className }) {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   // Format prices according to currency and Indian numbering standard
@@ -14,7 +14,49 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
     });
   };
 
-  const upiUrl = `upi://pay?pa=${invoiceData.upiId}&pn=${encodeURIComponent(invoiceData.companyName)}&am=${invoiceData.price}&cu=INR&tn=${invoiceData.isPaid ? 'Receipt' : 'Invoice'}_${invoiceData.invoiceNumber}`;
+  // Convert raw YYYY-MM-DD input dates into clean, professional "DD Mon YYYY" (e.g. 27 May 2026)
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    
+    // Check if already manually typed in "DD Mon YYYY" format (e.g. "24 Mar 2024")
+    const dateTrim = dateStr.trim();
+    if (/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/i.test(dateTrim)) {
+      return dateTrim.replace(/\b([a-z]+)\b/gi, (match) => match.charAt(0).toUpperCase() + match.slice(1).toLowerCase());
+    }
+
+    // Try parsing YYYY-MM-DD standard datepicker format
+    const parts = dateTrim.split('-');
+    if (parts.length === 3) {
+      const year = parts[0];
+      const monthIndex = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthName = months[monthIndex];
+      
+      if (monthName && !isNaN(day) && !isNaN(year)) {
+        return `${String(day).padStart(2, '0')} ${monthName} ${year}`;
+      }
+    }
+
+    // Fallback parsing via Javascript Date object
+    const date = new Date(dateTrim);
+    if (isNaN(date.getTime())) return dateStr;
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const originalPrice = Number(invoiceData.price) || 0;
+  const discountPercent = Number(invoiceData.discount) || 0;
+  const discountAmount = (originalPrice * discountPercent) / 100;
+  const installationFee = Number(invoiceData.installationCharges) || 0;
+  const finalTotal = originalPrice - discountAmount + installationFee;
+
+  const upiUrl = `upi://pay?pa=${invoiceData.upiId}&pn=${encodeURIComponent(invoiceData.companyName)}&am=${finalTotal.toFixed(2)}&cu=INR&tn=${invoiceData.isPaid ? 'Receipt' : 'Invoice'}_${invoiceData.invoiceNumber}`;
 
   // Generate QR Code locally as a Base64 data URL to prevent CORS/taint canvas issues
   useEffect(() => {
@@ -33,7 +75,7 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
   const qrCodeImage = invoiceData.qrType === 'upi' ? qrCodeUrl : invoiceData.customQr;
 
   return (
-    <div className="preview-pane">
+    <div className={`preview-pane ${className || ''}`}>
       <div 
         id="invoice-print-area" 
         className="invoice-paper" 
@@ -43,7 +85,7 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
         {invoiceData.isPaid && (
           <div className="paid-watermark-stamp">
             <span>PAID</span>
-            <span className="stamp-date">{invoiceData.startDate || 'SUCCESS'}</span>
+            <span className="stamp-date">{formatDate(invoiceData.startDate) || 'SUCCESS'}</span>
           </div>
         )}
 
@@ -83,10 +125,10 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
             <div className="meta-value-grid">{invoiceData.invoiceNumber}</div>
             
             <div className="meta-label-grid">Start Date</div>
-            <div className="meta-value-grid">{invoiceData.startDate}</div>
+            <div className="meta-value-grid">{formatDate(invoiceData.startDate)}</div>
             
             <div className="meta-label-grid">{invoiceData.isPaid ? 'Payment Date' : 'Payment Due Date'}</div>
-            <div className="meta-value-grid">{invoiceData.isPaid ? invoiceData.startDate : invoiceData.dueDate}</div>
+            <div className="meta-value-grid">{formatDate(invoiceData.isPaid ? invoiceData.startDate : invoiceData.dueDate)}</div>
           </div>
         </div>
 
@@ -97,7 +139,6 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
               <tr>
                 <th className="col-plan" style={{ borderBottomColor: '#111827' }}>PLAN NAME</th>
                 <th className="col-qty" style={{ borderBottomColor: '#111827', textAlign: 'center' }}>TIME PERIOD</th>
-                <th className="col-price" style={{ borderBottomColor: '#111827', textAlign: 'right' }}>PRICE</th>
                 <th className="col-amount" style={{ borderBottomColor: '#111827', textAlign: 'right' }}>AMOUNT</th>
               </tr>
             </thead>
@@ -111,9 +152,6 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
                 </td>
                 <td className="col-qty">
                   <div className="qty-val">{invoiceData.timePeriod}</div>
-                </td>
-                <td className="col-price" style={{ textAlign: 'right' }}>
-                  <div className="price-val">{formatCurrency(invoiceData.price)}</div>
                 </td>
                 <td className="col-amount" style={{ textAlign: 'right' }}>
                   <div className="amount-val">{formatCurrency(invoiceData.price)}</div>
@@ -153,13 +191,29 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
 
           {/* Calculations Column */}
           <div className="footer-right-col">
-            <div className="calc-row">
-              <span className="calc-label">Subtotal</span>
-              <span className="calc-value">{formatCurrency(invoiceData.price)}</span>
-            </div>
+            {(discountPercent > 0 || installationFee > 0) && (
+              <>
+                <div className="calc-row">
+                  <span className="calc-label">Subtotal (Plan)</span>
+                  <span className="calc-value">{formatCurrency(originalPrice)}</span>
+                </div>
+                {installationFee > 0 && (
+                  <div className="calc-row" style={{ color: 'var(--dash-text-heading)', fontWeight: 500 }}>
+                    <span className="calc-label">Installation Charges</span>
+                    <span className="calc-value">+ {formatCurrency(installationFee)}</span>
+                  </div>
+                )}
+                {discountPercent > 0 && (
+                  <div className="calc-row" style={{ color: 'var(--accent-rose)', fontWeight: 500 }}>
+                    <span className="calc-label">Discount ({discountPercent}%)</span>
+                    <span className="calc-value">- {formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
+              </>
+            )}
             <div className="calc-row">
               <span className="calc-label">Total</span>
-              <span className="calc-value" style={{ fontWeight: 700 }}>{formatCurrency(invoiceData.price)}</span>
+              <span className="calc-value" style={{ fontWeight: 700 }}>{formatCurrency(finalTotal)}</span>
             </div>
             
             <div className="calc-divider"></div>
@@ -170,7 +224,7 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef }) {
               style={{ backgroundColor: activeColor }}
             >
               <span className="highlight-label">{invoiceData.isPaid ? 'Amount Paid' : 'Amount Due'}</span>
-              <span className="highlight-val">{formatCurrency(invoiceData.price)}</span>
+              <span className="highlight-val">{formatCurrency(finalTotal)}</span>
             </div>
           </div>
         </div>

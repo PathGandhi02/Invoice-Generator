@@ -59,12 +59,38 @@ export default function PlanCustomizationSection({ invoiceData, onChange, isOpen
               />
             </div>
             <div className="form-group">
-              <label>Unit Price ({invoiceData.currencySymbol})</label>
+              <label>Total Amount ({invoiceData.currencySymbol})</label>
               <input 
                 type="number" 
                 name="price" 
                 value={invoiceData.price}
                 placeholder="11400"
+                onChange={handleInputChange} 
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Discount (%)</label>
+              <input 
+                type="number" 
+                name="discount" 
+                value={invoiceData.discount}
+                placeholder="0"
+                min="0"
+                max="100"
+                onChange={handleInputChange} 
+              />
+            </div>
+            <div className="form-group">
+              <label>Installation Charges ({invoiceData.currencySymbol})</label>
+              <input 
+                type="number" 
+                name="installationCharges" 
+                value={invoiceData.installationCharges}
+                placeholder="0"
+                min="0"
                 onChange={handleInputChange} 
               />
             </div>

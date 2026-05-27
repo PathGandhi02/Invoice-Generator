@@ -39,16 +39,16 @@ export default function InvoiceMetaSection({ invoiceData, onChange, isOpen, onTo
             <div className="form-group">
               <label>Issue/Start Date</label>
               <input 
-                type="text" 
+                type="date" 
                 name="startDate" 
                 value={invoiceData.startDate}
                 onChange={handleInputChange} 
-            />
+              />
             </div>
             <div className="form-group">
               <label>Due Date</label>
               <input 
-                type="text" 
+                type="date" 
                 name="dueDate" 
                 value={invoiceData.dueDate}
                 onChange={handleInputChange} 
