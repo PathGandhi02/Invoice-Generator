@@ -119,6 +119,16 @@ export default function InvoicePreview({ invoiceData, activeColor, innerRef, cla
             {invoiceData.customerPhone && (
               <div className="banner-bill-phone">{invoiceData.customerPhone}</div>
             )}
+            {invoiceData.customerAddress && (
+              <div className="banner-bill-address" style={{ fontSize: '0.9rem', color: '#374151', whiteSpace: 'pre-line', marginTop: '0.1rem' }}>
+                {invoiceData.customerAddress}
+              </div>
+            )}
+            {invoiceData.customerEmail && (
+              <div className="banner-bill-email" style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.15rem' }}>
+                {invoiceData.customerEmail}
+              </div>
+            )}
           </div>
           <div className="banner-col-meta">
             <div className="meta-label-grid">{invoiceData.isPaid ? 'Receipt #' : 'Invoice #'}</div>

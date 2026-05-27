@@ -30,6 +30,8 @@ const INITIAL_INVOICE_DATA = {
   email: 'marutigigafiber@gmail.com',
   customerName: '',
   customerPhone: '+91 ',
+  customerAddress: '',
+  customerEmail: '',
   invoiceNumber: '2027-2026/5678',
   startDate: getTodayString(),
   dueDate: getFutureDateString(3),

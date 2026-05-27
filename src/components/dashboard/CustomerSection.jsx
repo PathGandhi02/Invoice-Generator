@@ -44,6 +44,37 @@ export default function CustomerSection({ invoiceData, onChange, isOpen, onToggl
               onChange={handleInputChange} 
             />
           </div>
+
+          <div className="form-group">
+            <label>Customer Address</label>
+            <textarea 
+              name="customerAddress" 
+              value={invoiceData.customerAddress}
+              onChange={handleInputChange} 
+              rows={2}
+              style={{
+                width: '100%',
+                background: 'var(--dash-input-bg)',
+                border: '1px solid var(--dash-input-border)',
+                borderRadius: '6px',
+                color: 'white',
+                padding: '0.6rem 0.75rem',
+                fontFamily: 'var(--font-primary)',
+                fontSize: '0.875rem',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Customer Email</label>
+            <input 
+              type="email" 
+              name="customerEmail" 
+              value={invoiceData.customerEmail}
+              onChange={handleInputChange} 
+            />
+          </div>
         </div>
       )}
     </div>
