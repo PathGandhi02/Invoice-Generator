@@ -25,3 +25,21 @@ dist-ssr
 
 # temp files
 temp
+
+# Expo and local tooling
+.expo/
+.npm-cache/
+.tooling/
+dist-android/
+android/
+ios/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+
+# Prepared private customer data: regenerate from the owner's input file.
+src/data/customers.json

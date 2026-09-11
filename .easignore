@@ -1,0 +1,19 @@
+.git/
+node_modules/
+.npm-cache/
+.tooling/
+.expo/
+dist/
+dist-android/
+android/
+ios/
+temp/
+input/
+tmp/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+# The prepared dataset is required for a private APK build.
+!src/data/customers.json
