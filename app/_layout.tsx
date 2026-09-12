@@ -13,13 +13,19 @@ import { colors, fonts } from '../src/theme';
 export { ErrorBoundary } from 'expo-router';
 
 export default function RootLayout() {
-  useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Outfit_600SemiBold, Outfit_700Bold });
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Outfit_600SemiBold, Outfit_700Bold });
   useEffect(() => {
     if (Platform.OS === 'web' && process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
       void navigator.serviceWorker.register('/sw.js').catch(() => console.info('Offline web cache is unavailable; the current workspace remains usable.'));
     }
   }, []);
-  return <SafeAreaProvider><ToastProvider><AppProvider><AppShell /></AppProvider></ToastProvider></SafeAreaProvider>;
+  // Native text measurements can retain fallback widths after the font loads.
+  // Mount the workspace once fonts settle; still allow startup if loading fails.
+  const waitingForFonts = Platform.OS !== 'web' && !fontsLoaded && !fontError;
+  return <SafeAreaProvider>{waitingForFonts
+    ? <View style={[styles.root, styles.loading]}><ActivityIndicator accessibilityLabel="Loading workspace" color={colors.blue} /></View>
+    : <ToastProvider><AppProvider><AppShell /></AppProvider></ToastProvider>}
+  </SafeAreaProvider>;
 }
 
 function AppShell() {

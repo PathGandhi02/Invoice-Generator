@@ -12,6 +12,7 @@ input/
 tmp/
 test-results/
 playwright-report/
+artifacts/
 .env
 .env.*
 !.env.example

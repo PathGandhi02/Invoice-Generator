@@ -1,6 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
+const customers = JSON.parse(readFileSync('src/data/customers.json', 'utf8'));
+const customerCountLabel = `${customers.length.toLocaleString('en-IN')} customers available`;
+
 async function manualInvoice(page: Page) {
   await page.getByRole('button', { name: 'Enter customer manually' }).click();
   await page.getByRole('textbox', { name: 'Customer name', exact: true }).fill('Test Customer');
@@ -12,10 +15,9 @@ async function manualInvoice(page: Page) {
 }
 
 test('customer search, selection, metadata, and invoice-only edits', async ({ page }) => {
-  const customers = JSON.parse(readFileSync('src/data/customers.json', 'utf8'));
   const customer = customers.find((item: { email?: string | null }) => !item.email || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(item.email));
   await page.goto('/');
-  await expect(page.getByText('710 customers available', { exact: false })).toBeVisible();
+  await expect(page.getByText(customerCountLabel, { exact: false })).toBeVisible();
   const search = page.getByRole('textbox', { name: 'Search customers' });
   await search.fill(customer.username);
   await page.getByRole('button', { name: `Select ${customer.full_name}, ${customer.username}`, exact: true }).click();
@@ -59,6 +61,8 @@ test('manual invoice, decimal pricing, paid receipt, persistence, history and PD
   const bytes = readFileSync(file);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
   expect(bytes.length).toBeGreaterThan(20_000);
+  // A normal receipt must fit the A4 printable area without a second footer page.
+  expect(bytes.toString('latin1').match(/\/Type \/Page\b/g)).toHaveLength(1);
   expect(errors).toEqual([]);
 });
 
@@ -103,7 +107,7 @@ test('installed web cache supports offline startup, customer search and PDF expo
   });
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('710 customers available', { exact: false })).toBeVisible();
+  await expect(page.getByText(customerCountLabel, { exact: false })).toBeVisible();
   await manualInvoice(page);
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export PDF', exact: true }).click();
