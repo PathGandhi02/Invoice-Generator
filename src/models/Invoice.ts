@@ -8,6 +8,7 @@ export interface InvoiceData {
   phone: string;
   email: string;
   customerUsername?: string;
+  customerId?: string;
   customerName: string;
   customerPhone: string;
   customerAddress: string;

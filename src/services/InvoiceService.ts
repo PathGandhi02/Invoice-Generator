@@ -15,7 +15,7 @@ export function createDraft(settings: BusinessSettings): InvoiceData {
     startDate: today(), dueDate: daysFromToday(3), planName: settings.defaultPlanName,
     planSubtext: '', timePeriod: settings.defaultTimePeriod, price: 0,
     currencySymbol: settings.currencySymbol, isPaid: false, paymentMethod: '',
-    showQr: true, qrType: 'upi', discount: 0,
+    showQr: !!settings.upiId, qrType: 'upi', discount: 0,
     installationCharges: settings.defaultInstallationCharges, customLogo: settings.logo,
     customQr: null, accentColor: settings.accentColor,
   };
@@ -23,9 +23,9 @@ export function createDraft(settings: BusinessSettings): InvoiceData {
 
 export function autofillCustomer(invoice: InvoiceData, customer: Customer): InvoiceData {
   return {
-    ...invoice, customerUsername: customer.username, customerName: customer.full_name,
+    ...invoice, customerId: customer.id, customerUsername: customer.username, customerName: customer.full_name,
     customerEmail: customer.email || '', customerAddress: customer.address || '',
-    customerPhone: '+91 ', timePeriod: customer.package || '',
+    customerPhone: customer.phone || '+91 ', timePeriod: customer.package || '',
     customerPackage: customer.package || '', customerExpiryDate: customer.expiry_date || '',
     customerLastRechargeDate: customer.last_recharge_date || '',
   };
@@ -33,7 +33,7 @@ export function autofillCustomer(invoice: InvoiceData, customer: Customer): Invo
 
 export function clearCustomer(invoice: InvoiceData): InvoiceData {
   return {
-    ...invoice, customerUsername: undefined, customerName: '', customerEmail: '',
+    ...invoice, customerId: undefined, customerUsername: undefined, customerName: '', customerEmail: '',
     customerAddress: '', customerPhone: '+91 ', customerPackage: undefined,
     customerExpiryDate: undefined, customerLastRechargeDate: undefined, timePeriod: '',
   };

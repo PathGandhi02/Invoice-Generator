@@ -13,7 +13,7 @@ export const accentSchema = z.string().regex(/^#[\da-fA-F]{6}$/, 'Use a six-digi
 export const draftSchema = z.object({
   id: required, companyName: text, address1: text, address2: text, address3: text,
   country: text, phone: text, email: text,
-  customerUsername: text.optional(), customerName: text, customerPhone: text,
+  customerId: z.uuid().optional(), customerUsername: text.optional(), customerName: text, customerPhone: text,
   customerAddress: text, customerEmail: text, customerPackage: text.optional(),
   customerExpiryDate: text.optional(), customerLastRechargeDate: text.optional(),
   invoiceNumber: text, startDate: text, dueDate: text, planName: text, planSubtext: text,
@@ -25,7 +25,7 @@ export const draftSchema = z.object({
 });
 
 export const invoiceSchema = draftSchema.extend({
-  companyName: required, customerName: required, customerEmail: email, email,
+  companyName: text, customerName: required, customerEmail: email, email,
   invoiceNumber: required.max(100), startDate: date, dueDate: date,
   planName: required, timePeriod: required, currencySymbol: required.max(8),
   price: money, installationCharges: money,
@@ -40,10 +40,10 @@ export const invoiceSchema = draftSchema.extend({
 });
 
 export const settingsSchema = z.object({
-  companyName: required, address1: text, address2: text, address3: text,
+  companyName: text, address1: text, address2: text, address3: text,
   country: required.max(3), phone: text, email,
-  upiId: text, currencySymbol: required.max(8), defaultPlanName: required,
-  defaultTimePeriod: required, defaultInstallationCharges: money,
+  upiId: text, currencySymbol: required.max(8), defaultPlanName: text,
+  defaultTimePeriod: text, defaultInstallationCharges: money,
   accentColor: accentSchema, logo: imageDataSchema,
 });
 

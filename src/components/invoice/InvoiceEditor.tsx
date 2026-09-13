@@ -17,8 +17,13 @@ import { calculateInvoice } from '../../utils/invoiceCalculations';
 import { formatCurrency } from '../../utils/currency';
 import { colors, fonts, shared } from '../../theme';
 import type { InvoiceData } from '../../models/Invoice';
+import { useWorkspace } from '../../state/WorkspaceProvider';
+import { useToast } from '../../state/ToastProvider';
 
 export function InvoiceEditor() {
+  const { customers, cloud } = useWorkspace();
+  const notify = useToast();
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const { form, setAccent } = useApp();
   const { control, setValue, reset, getValues, formState: { errors } } = form;
   const data = useWatch({ control }) as InvoiceData;
@@ -49,6 +54,13 @@ export function InvoiceEditor() {
         {field('customerPhone', 'Customer phone', { keyboardType: 'phone-pad' })}
         {field('customerEmail', 'Customer email', { keyboardType: 'email-address', autoCapitalize: 'none' })}
         {field('customerAddress', 'Customer address', { multiline: true })}
+        {!data.customerUsername && <Button title={cloud ? 'Save customer to workspace' : 'Save customer on this device'} busy={savingCustomer} onPress={() => {
+          setSavingCustomer(true);
+          void customers.save({ username: `manual_${data.id}`, full_name: data.customerName, phone: data.customerPhone, email: data.customerEmail, address: data.customerAddress, package: data.planName, expiry_date: null, last_recharge_date: null })
+            .then(() => notify('Customer saved. You can find them in customer search.'))
+            .catch(() => notify('Customer could not be saved. Check their name, email and your connection or storage.', 'error'))
+            .finally(() => setSavingCustomer(false));
+        }} />}
       </>}
       {errors.customerName && !manual && !data.customerName && <Text style={{ color: colors.rose, fontSize: 12 }}>Select a customer or enter their details manually.</Text>}
     </AccordionCard>

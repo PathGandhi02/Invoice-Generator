@@ -46,8 +46,8 @@ test('storage failures reject clearly and subsequent saves can recover', async (
 });
 test('concurrent invoice saves keep both invoices and updating a receipt does not duplicate history', async () => {
   const repository = new LocalInvoiceRepository(new StorageService(memoryAdapter().adapter));
-  const first = toHistoryRecord({ ...createDraft(defaultSettings), customerName: 'First Customer', price: 1000 });
-  const second = toHistoryRecord({ ...createDraft(defaultSettings), customerName: 'Second Customer', price: 2000 });
+  const first = toHistoryRecord({ ...createDraft(defaultSettings), planName: 'Test Plan', timePeriod: '12 Months', customerName: 'First Customer', price: 1000 });
+  const second = toHistoryRecord({ ...createDraft(defaultSettings), planName: 'Test Plan', timePeriod: '12 Months', customerName: 'Second Customer', price: 2000 });
   await Promise.all([repository.save(first), repository.save(second)]);
   assert.equal((await repository.getAll()).length, 2);
   await repository.save(toHistoryRecord({ ...first.data, isPaid: true }));
@@ -60,6 +60,6 @@ test('corrupt history is preserved instead of overwritten by the next save', asy
   const { data, adapter } = memoryAdapter();
   data.set('gigainvoice:v1:history', '[{"broken":true}]');
   const repository = new LocalInvoiceRepository(new StorageService(adapter));
-  await assert.rejects(repository.save(toHistoryRecord({ ...createDraft(defaultSettings), customerName: 'Test' })), /could not be read/);
+  await assert.rejects(repository.save(toHistoryRecord({ ...createDraft(defaultSettings), planName: 'Test Plan', timePeriod: '12 Months', customerName: 'Test' })), /could not be read/);
   assert.equal(data.get('gigainvoice:v1:history'), '[{"broken":true}]');
 });

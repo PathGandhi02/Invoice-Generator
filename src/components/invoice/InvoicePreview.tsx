@@ -26,11 +26,11 @@ export function InvoicePreview({ invoice, fullSize = false }: { invoice: Invoice
           style={[styles.paper, { transform: [{ scale }], transformOrigin: 'top left' }]}>
           {invoice.isPaid && <PaidStamp date={invoice.dueDate} />}
           <View style={styles.header}>
-            <Image accessibilityLabel="Business logo" source={invoice.customLogo && !logoError ? { uri: invoice.customLogo } : require('../../assets/logo.jpg')}
-              onError={() => setLogoError(true)} resizeMode="contain" style={styles.logo} />
+            {invoice.customLogo && !logoError && <Image accessibilityLabel="Business logo" source={{ uri: invoice.customLogo }}
+              onError={() => setLogoError(true)} resizeMode="contain" style={styles.logo} />}
             <View style={styles.business}>
               <Text style={styles.title}>{invoice.isPaid ? 'Receipt' : 'Invoice'}</Text>
-              <Text style={styles.company}>{invoice.companyName}</Text>
+              {!!invoice.companyName && <Text style={styles.company}>{invoice.companyName}</Text>}
               {[invoice.address1, invoice.address2, invoice.address3, invoice.country, invoice.phone, invoice.email].filter(Boolean).map((line, index) => <Text key={index} style={styles.contact}>{line}</Text>)}
             </View>
           </View>
@@ -69,7 +69,7 @@ export function InvoicePreview({ invoice, fullSize = false }: { invoice: Invoice
             </View>
           </View>
           <View style={{ flex: 1, minHeight: 75 }} />
-          <View style={styles.note}><Text style={styles.thankyou}>Thank you for choosing {invoice.companyName}.</Text><Text style={styles.noteText}>Note: This is a computer generated invoice and does not require a signature.</Text></View>
+          <View style={styles.note}><Text style={styles.thankyou}>{invoice.companyName ? `Thank you for choosing ${invoice.companyName}.` : 'Thank you for your business.'}</Text><Text style={styles.noteText}>Note: This is a computer generated invoice and does not require a signature.</Text></View>
         </View>
       </View>
     </ScrollView>

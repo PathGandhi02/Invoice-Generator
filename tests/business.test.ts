@@ -47,7 +47,7 @@ test('validation keeps valid entries and reports invalid rows and exact duplicat
 });
 test('all valid supplied records are included in the prepared JSON', () => {
   const source = JSON.parse(readFileSync('temp/subscribers.json', 'utf8'));
-  const prepared = JSON.parse(readFileSync('src/data/customers.json', 'utf8'));
+  const prepared = JSON.parse(readFileSync('temp/private-import/customers.json', 'utf8'));
   assert.deepEqual(prepared, validateCustomers(source).customers);
 });
 test('indexed search is partial, case-insensitive, Unicode safe, bounded, and initialized once', async () => {
@@ -80,7 +80,7 @@ test('selection autofills invoice fields without mapping package to plan or muta
   const selected = autofillCustomer({ ...draft, customerPhone: '1111111111' }, customer);
   assert.equal(selected.customerName, customer.full_name); assert.equal(selected.customerEmail, '');
   assert.equal(selected.customerAddress, 'Idar'); assert.equal(selected.timePeriod, '12 Months');
-  assert.equal(selected.planName, '100 Mbps Unlimited'); assert.equal(selected.customerPhone, '+91 ');
+  assert.equal(selected.planName, ''); assert.equal(selected.customerPhone, '+91 ');
   assert.equal(selected.customerExpiryDate, customer.expiry_date);
   selected.customerName = 'Invoice-only change';
   assert.equal(customer.full_name, 'Demo User');
@@ -100,14 +100,14 @@ test('UPI payload encodes every field and reflects discounted totals and receipt
   assert.equal(canShowUpi({ ...invoice, currencySymbol: '$' }), false);
 });
 test('export validation rejects invalid dates, amounts and missing QR while allowing manual customers', () => {
-  const invoice = { ...createDraft(defaultSettings), customerName: 'Manual Customer' };
+  const invoice = { ...createDraft(defaultSettings), customerName: 'Manual Customer', planName: 'Test Plan', timePeriod: '12 Months', showQr: true, upiId: 'test@upi' };
   assert.equal(invoiceSchema.safeParse(invoice).success, true);
   for (const change of [{ price: -1 }, { price: NaN }, { discount: 101 }, { startDate: '2026-02-30' }, { customerEmail: 'bad' }, { currencySymbol: '$' }, { qrType: 'custom' }]) {
     assert.equal(invoiceSchema.safeParse({ ...invoice, ...change }).success, false);
   }
 });
 test('PDF HTML escapes invoice values and contains offline QR, logo and paid stamp', () => {
-  const invoice = { ...createDraft(defaultSettings), customerName: '<script>alert(1)</script>', isPaid: true, price: 1000, dueDate: '2026-09-14' };
+  const invoice = { ...createDraft(defaultSettings), customerName: '<script>alert(1)</script>', showQr: true, upiId: 'test@upi', customLogo: 'data:image/jpeg;base64,/9j/2Q==', isPaid: true, price: 1000, dueDate: '2026-09-14' };
   const html = buildInvoiceHtml(invoice);
   assert.ok(!html.includes('<script>')); assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(html.includes('data:image/gif;base64,')); assert.ok(html.includes('data:image/jpeg;base64,'));

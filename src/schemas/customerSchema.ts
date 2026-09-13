@@ -3,9 +3,11 @@ import type { Customer } from '../models/Customer';
 
 const optionalText = z.string().nullish();
 export const customerSchema = z.object({
+  id: z.uuid().optional(),
   username: z.string().refine(value => value.trim().length > 0),
   full_name: z.string().refine(value => value.trim().length > 0),
   email: optionalText,
+  phone: optionalText,
   address: optionalText,
   package: optionalText,
   expiry_date: optionalText,

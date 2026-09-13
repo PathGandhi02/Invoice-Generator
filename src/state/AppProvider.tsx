@@ -1,13 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, Text, View } from 'react-native';
 import { FormProvider, useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Invoice, InvoiceData } from '../models/Invoice';
 import { defaultSettings, type BusinessSettings } from '../models/BusinessSettings';
 import { draftSchema, invoiceSchema, settingsSchema } from '../schemas/invoiceSchema';
 import { createDraft, toHistoryRecord } from '../services/InvoiceService';
-import { invoiceRepository, storageService } from '../services/container';
+import { useWorkspace } from './WorkspaceProvider';
 import { useToast } from './ToastProvider';
+import { useAuth } from './AuthProvider';
+import { Button } from '../components/common/Button';
+import { shared } from '../theme';
 
 interface AppContextValue {
   form: UseFormReturn<InvoiceData>;
@@ -29,6 +32,9 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { storage: storageService, invoices: invoiceRepository, cloud } = useWorkspace();
+  const { signOut } = useAuth();
+  const [restoreError, setRestoreError] = useState(false), [revision, setRevision] = useState(0);
   const notify = useToast();
   const [settings, setSettings] = useState(defaultSettings);
   const settingsRef = useRef(settings);
@@ -46,6 +52,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         storageService.get('settings'), storageService.get('draft'), storageService.get('drafts'),
       ]);
       if (!active) return;
+      if ([storedSettings, storedDraft, storedDrafts].some(result => result.status === 'rejected')) {
+        setRestoreError(true); return;
+      }
+      setRestoreError(false);
       const business = storedSettings.status === 'fulfilled' && storedSettings.value ? settingsSchema.safeParse(storedSettings.value) : null;
       const saved = business?.success ? business.data : defaultSettings;
       settingsRef.current = saved;
@@ -64,7 +74,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     void restore();
     return () => { active = false; };
-  }, [notify, reset]);
+  }, [notify, reset, storageService, revision]);
 
   useEffect(() => {
     if (!ready) return;
@@ -83,7 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         reported = false;
       }).catch(() => {
         if (active) setDraftStatus('error');
-        if (!reported) notify('Draft could not be saved on this device. Free some storage and try again.', 'error');
+        if (!reported) notify(cloud ? 'Cloud draft could not be saved. Check your connection and retry.' : 'Draft could not be saved on this device. Free some storage and try again.', 'error');
         reported = true;
       });
     };
@@ -96,20 +106,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const flush = () => { void persist(); };
     if (Platform.OS === 'web') window.addEventListener('pagehide', flush);
     return () => { active = false; clearTimeout(timer); unsubscribe(); appState.remove(); if (Platform.OS === 'web') window.removeEventListener('pagehide', flush); };
-  }, [ready, subscribe, getValues, notify]);
+  }, [ready, subscribe, getValues, notify, storageService, cloud]);
 
   const saveSettings = useCallback(async (next: BusinessSettings) => {
     const valid = settingsSchema.parse(next);
     await storageService.set('settings', valid);
     settingsRef.current = valid;
     setSettings(valid);
-  }, []);
+  }, [storageService]);
 
   const saveInvoice = useCallback(async (data: InvoiceData) => {
     const record = toHistoryRecord(invoiceSchema.parse(data));
     await invoiceRepository.save(record);
     return record;
-  }, []);
+  }, [invoiceRepository]);
 
   const openInvoice = useCallback(async (data: InvoiceData) => {
     const snapshot = { ...getValues() };
@@ -126,7 +136,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     await storageService.set('draft', data);
     reset(data);
-  }, [getValues, reset]);
+  }, [getValues, reset, storageService]);
 
   const newInvoice = useCallback(() => openInvoice(createDraft(settingsRef.current)), [openInvoice]);
   const setAccent = useCallback((color: string) => {
@@ -134,6 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void saveSettings({ ...settingsRef.current, accentColor: color }).catch(() => notify('Accent could not be saved as a default.', 'error'));
   }, [form, notify, saveSettings]);
 
+  if (restoreError) return <View style={[shared.content, { flex: 1, justifyContent: 'center' }]}><Text style={shared.title}>Your saved workspace could not be restored.</Text><Text style={shared.subtitle}>Check your connection or device storage. Existing records have been kept.</Text><Button title="Retry workspace" onPress={() => { setRestoreError(false); setRevision(n => n + 1); }} />{cloud && <Button title="Sign out" onPress={() => { void signOut().catch(() => {}); }} />}</View>;
   return <AppContext.Provider value={{ form, ready, settings, draftStatus, drafts, saveSettings, saveInvoice, newInvoice, openInvoice, setAccent }}>
     <FormProvider {...form}>{children}</FormProvider>
   </AppContext.Provider>;

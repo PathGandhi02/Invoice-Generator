@@ -3,7 +3,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ArrowUpRight, FileText, History, Plus } from 'lucide-react-native';
 import type { Invoice, InvoiceData } from '../src/models/Invoice';
-import { invoiceRepository } from '../src/services/container';
+import { useWorkspace } from '../src/state/WorkspaceProvider';
 import { useApp } from '../src/state/AppProvider';
 import { useToast } from '../src/state/ToastProvider';
 import { formatCurrency } from '../src/utils/currency';
@@ -13,6 +13,7 @@ import { Button } from '../src/components/common/Button';
 import { colors, fonts, shared } from '../src/theme';
 
 export default function HistoryScreen() {
+  const { invoices: invoiceRepository, cloud } = useWorkspace();
   const [query, setQuery] = useState('');
   const [records, setRecords] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function HistoryScreen() {
         .finally(() => { if (active) setLoading(false); });
     }, 200);
     return () => { active = false; clearTimeout(timer); };
-  }, [query, revision, notify]);
+  }, [query, revision, notify, invoiceRepository]);
 
   const open = async (data?: InvoiceData) => {
     if (busy) return;
@@ -49,7 +50,7 @@ export default function HistoryScreen() {
   return <View style={shared.page}><FlatList data={records} keyExtractor={item => item.id}
     contentContainerStyle={[shared.content, { flexGrow: 1 }]} keyboardShouldPersistTaps="handled"
     ListHeaderComponent={<View style={{ gap: 24 }}>
-      <View style={[shared.between, width < 500 && { alignItems: 'flex-start', flexDirection: 'column' }]}><View style={{ gap: 7 }}><Text style={shared.title}>Every invoice, in one place.</Text><Text style={shared.subtitle}>Your saved invoices and receipts, on this device.</Text></View><Button title="New invoice" variant="primary" busy={busy} onPress={() => { void open(); }} icon={<Plus size={17} color="white" />} /></View>
+      <View style={[shared.between, width < 500 && { alignItems: 'flex-start', flexDirection: 'column' }]}><View style={{ gap: 7 }}><Text style={shared.title}>Every invoice, in one place.</Text><Text style={shared.subtitle}>{cloud ? 'Your workspace invoices and receipts, saved in the cloud.' : 'Your saved invoices and receipts, on this device.'}</Text></View><Button title="New invoice" variant="primary" busy={busy} onPress={() => { void open(); }} icon={<Plus size={17} color="white" />} /></View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {[[String(records.length), 'Saved documents'], [currency ? formatCurrency(paid, currency) : 'Multiple currencies', 'Marked paid'], [currency ? formatCurrency(due, currency) : 'Multiple currencies', 'Amount due']].map(([value, label]) => <View key={label} style={[shared.card, { flex: 1, minWidth: 145 }]}><Text style={shared.label}>{label}</Text><Text style={{ fontSize: 23, color: label === 'Marked paid' ? colors.green : colors.heading, fontFamily: fonts.heading }}>{value}</Text></View>)}
       </View>

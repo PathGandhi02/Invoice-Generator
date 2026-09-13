@@ -1,21 +1,30 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const customers = JSON.parse(readFileSync('src/data/customers.json', 'utf8'));
-const customerCountLabel = `${customers.length.toLocaleString('en-IN')} customers available`;
+const customers = [{username:'demo_fiber',full_name:'Fictional Test Customer',email:'test@example.test',package:'12 Months',address:'Test address'}];
+const customerCountLabel = '1 customers available';
+// Only fictional, deliberately saved guest customers are available offline.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(customers => {
+    localStorage.setItem('gigainvoice:v2:preferences:guest-chosen','true');
+    if (!localStorage.getItem('gigainvoice:v2:guest:customers')) localStorage.setItem('gigainvoice:v2:guest:customers',JSON.stringify(customers));
+  }, customers);
+});
 
 async function manualInvoice(page: Page) {
   await page.getByRole('button', { name: 'Enter customer manually' }).click();
   await page.getByRole('textbox', { name: 'Customer name', exact: true }).fill('Test Customer');
   await page.getByRole('textbox', { name: 'Customer address', exact: true }).fill('Idar, Gujarat');
   await page.getByRole('button', { name: 'Plan & pricing', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Plan name', exact: true }).fill('Test Plan');
+  await page.getByRole('textbox', { name: 'Time period', exact: true }).fill('12 Months');
   await page.getByRole('textbox', { name: 'Plan price', exact: true }).fill('1250.50');
   await page.getByRole('textbox', { name: 'Discount (%)', exact: true }).fill('10');
   await page.getByRole('textbox', { name: 'Installation charges', exact: true }).fill('200');
 }
 
 test('customer search, selection, metadata, and invoice-only edits', async ({ page }) => {
-  const customer = customers.find((item: { email?: string | null }) => !item.email || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(item.email));
+  const customer = customers[0]!;
   await page.goto('/');
   await expect(page.getByText(customerCountLabel, { exact: false })).toBeVisible();
   const search = page.getByRole('textbox', { name: 'Search customers' });

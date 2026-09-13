@@ -16,5 +16,9 @@ artifacts/
 .env
 .env.*
 !.env.example
-# The prepared dataset is required for a private APK build.
-!src/data/customers.json
+# Trusted import sources and prepared production data must never ship.
+src/data/customers.json
+src/assets/logo.jpg
+scripts/
+supabase/
+docs/

@@ -1,34 +1,29 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Directory, File, Paths } from 'expo-file-system';
-import type { InvoiceData } from '../models/Invoice';
-import { invoiceSchema } from '../schemas/invoiceSchema';
-import { invoiceFilename } from '../utils/filename';
-import { buildInvoiceHtml } from './pdf/invoiceHtml';
-import type { PdfAdapter, PdfResult } from './pdf/types';
+import { NativePdfPipeline, type NativePdfFile } from './pdf/NativePdfPipeline';
 
-class NativePdfService implements PdfAdapter {
-  async generate(invoice: InvoiceData): Promise<PdfResult> {
-    const valid = invoiceSchema.parse(invoice);
-    const filename = invoiceFilename(valid);
-    const result = await Print.printToFileAsync({ html: buildInvoiceHtml(valid), width: 595, height: 842, margins: { top: 22, bottom: 22, left: 0, right: 0 } });
-    const directory = new Directory(Paths.document, 'invoices');
-    directory.create({ intermediates: true, idempotent: true });
-    const destination = new File(directory, filename);
-    if (destination.exists) destination.delete();
-    const temporary = new File(result.uri);
-    temporary.copy(destination);
-    temporary.delete();
-    return { filename, uri: destination.uri };
-  }
-  async share(invoice: InvoiceData): Promise<PdfResult> {
-    if (!await Sharing.isAvailableAsync()) throw new Error('Sharing is unavailable on this device. Use Generate PDF or Print.');
-    const result = await this.generate(invoice);
-    await Sharing.shareAsync(result.uri!, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: result.filename });
-    return result;
-  }
-  async print(invoice: InvoiceData): Promise<void> {
-    await Print.printAsync({ html: buildInvoiceHtml(invoiceSchema.parse(invoice)) });
-  }
+function adaptFile(file: File): NativePdfFile {
+  return {
+    get uri() { return file.uri; },
+    get exists() { return file.exists; },
+    get size() { return file.size; },
+    header() { const handle = file.open(); try { return handle.readBytes(5); } finally { handle.close(); } },
+    copy: destination => file.copy(new File(destination.uri)),
+    delete: () => file.delete(),
+  };
 }
-export const pdfService: PdfAdapter = new NativePdfService();
+export const pdfService = new NativePdfPipeline({
+  render: html => Print.printToFileAsync({ html, base64: false, width: 595, height: 842, margins: { top: 22, bottom: 22, left: 0, right: 0 } }),
+  file: uri => adaptFile(new File(uri)),
+  destination: filename => {
+    const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    const directory = new Directory(Paths.document, 'invoices', unique);
+    directory.create({ intermediates: true });
+    return adaptFile(new File(directory, filename));
+  },
+  sharingAvailable: () => Sharing.isAvailableAsync(),
+  share: (uri, filename) => Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: filename }),
+  print: uri => Print.printAsync({ uri }),
+  log: (event, details) => { if (__DEV__) console.info(`[PDF] ${event}`, details ?? {}); },
+});

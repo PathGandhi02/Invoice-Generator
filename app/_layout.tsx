@@ -1,14 +1,17 @@
-import { Slot, Link, usePathname } from 'expo-router';
+import { Slot, Link, usePathname, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Wifi, FilePlus2, History, Settings2, ShieldCheck } from 'lucide-react-native';
+import { Wifi, FilePlus2, History, Settings2, ShieldCheck, UserRound } from 'lucide-react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { Outfit_600SemiBold, Outfit_700Bold } from '@expo-google-fonts/outfit';
 import { ToastProvider } from '../src/state/ToastProvider';
 import { AppProvider, useApp } from '../src/state/AppProvider';
 import { colors, fonts } from '../src/theme';
+import { AuthProvider, useAuth } from '../src/state/AuthProvider';
+import { WorkspaceProvider, useWorkspace } from '../src/state/WorkspaceProvider';
+import { Button } from '../src/components/common/Button';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -24,18 +27,29 @@ export default function RootLayout() {
   const waitingForFonts = Platform.OS !== 'web' && !fontsLoaded && !fontError;
   return <SafeAreaProvider>{waitingForFonts
     ? <View style={[styles.root, styles.loading]}><ActivityIndicator accessibilityLabel="Loading workspace" color={colors.blue} /></View>
-    : <ToastProvider><AppProvider><AppShell /></AppProvider></ToastProvider>}
+    : <ToastProvider><AuthProvider><WorkspaceBoundary /></AuthProvider></ToastProvider>}
   </SafeAreaProvider>;
+}
+
+function WorkspaceBoundary() {
+  const { user, business, isLoading, error, retry, signOut, continueAsGuest } = useAuth();
+  if (isLoading) return <View style={[styles.root, styles.loading]}><ActivityIndicator color={colors.blue} /><Text style={styles.navText}>Opening your workspace…</Text></View>;
+  if (error || (user && !business)) return <View style={[styles.root, styles.loading]}><Text style={styles.navText}>{error || 'Your workspace is unavailable.'}</Text><Button title="Retry" onPress={retry} /><Button title={user ? 'Sign out' : 'Continue as Guest'} onPress={() => { void (user ? signOut() : continueAsGuest()).catch(() => {}); }} /></View>;
+  return <WorkspaceProvider key={user ? `${user.id}:${business?.id}` : 'guest'}><AppProvider><AppShell /></AppProvider></WorkspaceProvider>;
 }
 
 function AppShell() {
   const { width } = useWindowDimensions();
   const { ready } = useApp();
+  const { cloud } = useWorkspace();
+  const { recovery } = useAuth();
+  const router = useRouter();
   // Match the static HTML until storage hydration completes on the client.
   const desktop = ready && width >= 1100;
   const pathname = usePathname();
+  useEffect(() => { if (ready && recovery && pathname !== '/reset-password') router.replace('/reset-password'); }, [ready, recovery, pathname, router]);
   const navigation = <View style={[styles.nav, !desktop && styles.bottomNav]}>
-    {([{ href: '/', title: 'Invoice', icon: FilePlus2 }, { href: '/history', title: 'History', icon: History }, { href: '/settings', title: 'Settings', icon: Settings2 }] as const).map(item => {
+    {([{ href: '/', title: 'Invoice', icon: FilePlus2 }, { href: '/history', title: 'History', icon: History }, { href: '/settings', title: 'Settings', icon: Settings2 }, { href: '/profile', title: 'Profile', icon: UserRound }] as const).map(item => {
       const selected = pathname === item.href;
       return <Link key={item.href} href={item.href} asChild><Pressable accessibilityRole="link" accessibilityLabel={item.title} accessibilityState={{ selected }}
         style={StyleSheet.flatten([styles.navItem, !desktop && { flex: 1, flexDirection: 'column', gap: 5 }, selected && styles.navSelected])}>
@@ -47,7 +61,7 @@ function AppShell() {
     <StatusBar style="light" />
     <View style={[styles.header, !desktop && { paddingHorizontal: 18, height: 70 }]}>
       <View style={styles.brand}><View style={styles.brandIcon}><Wifi size={25} color="white" /></View><View><Text style={styles.brandName}>GigaInvoice</Text><Text style={styles.brandSubtitle}>PRO STUDIO</Text></View></View>
-      {desktop ? navigation : <View style={styles.localBadge}><ShieldCheck size={13} color={colors.green} /><Text style={styles.localText}>On your device</Text></View>}
+      {desktop ? navigation : <View style={styles.localBadge}><ShieldCheck size={13} color={colors.green} /><Text style={styles.localText}>{cloud ? 'Cloud workspace' : 'Guest · This device'}</Text></View>}
     </View>
     {ready ? <View style={{ flex: 1 }}><Slot /></View> : <View style={styles.loading}><ActivityIndicator color={colors.blue} /><Text style={styles.navText}>Restoring your workspace…</Text></View>}
     {!desktop && navigation}

@@ -1,13 +1,6 @@
-import { JsonCustomerRepository } from '../repositories/JsonCustomerRepository';
-import { LocalInvoiceRepository } from '../repositories/LocalInvoiceRepository';
-import { CustomerService } from './CustomerService';
-import { StorageService } from './StorageService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Replace repositories here when authenticated Supabase storage is introduced.
-// Screens know only the services/interfaces, never the JSON source.
-export const storageService = new StorageService(AsyncStorage);
-export const customerService = new CustomerService(new JsonCustomerRepository(
-  async () => (await import('../data/customers.json')).default,
-));
-export const invoiceRepository = new LocalInvoiceRepository(storageService);
+import { StorageService } from './StorageService';
+export const preferencesStorage=new StorageService(AsyncStorage,'gigainvoice:v2:preferences:');
+export const guestStorage=new StorageService(AsyncStorage,'gigainvoice:v2:guest:');
+// Quarantined previous-version data is never exposed to a guest or generic account.
+export const legacyStorage=new StorageService(AsyncStorage);

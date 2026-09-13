@@ -31,6 +31,8 @@ export class JsonCustomerRepository implements CustomerRepository {
     return this.customers.map(customer => ({ ...customer }));
   }
 
+  async count(): Promise<number> { await this.load(); return this.customers.length; }
+
   async search(query: string): Promise<Customer[]> {
     const normalized = normalizeSearch(query);
     if (Array.from(normalized).length < 2) return [];

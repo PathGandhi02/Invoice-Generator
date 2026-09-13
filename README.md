@@ -1,118 +1,89 @@
-# GigaInvoice · Pro Studio
+# GigaInvoice
 
-A shared React Native, Expo Router, and TypeScript app for Maruti Giga Fiber. Android, iOS, and responsive web share the editor, customer services, calculations, and local persistence. No backend or Supabase account is required.
+An Expo/React Native invoice and receipt app for Android, iOS and responsive web. Accounts are optional. Guests keep their own local customers, settings, drafts and history; signed-in users use Supabase business workspaces. The shared Maruti directory is available only to its approved verified members and is never bundled in the app.
 
-## Setup
-
-Use Node.js 22 or newer and npm:
+## Run
 
 ```sh
 npm ci
-npm run prepare:customers
 npm run web
 ```
 
-On Windows PowerShell, use `npm.cmd` and `npx.cmd` if execution policy blocks the corresponding PowerShell scripts.
-
-The supplied source is `temp/subscribers.json`. Preparation searches `temp/`, `input/`, and `tmp/` for matching JSON arrays and chooses the file with the most valid customers. Use an explicit path when several exports exist:
-
-```sh
-npm run prepare:customers -- "temp/subscribers.json"
-```
-
-The script validates with Zod, preserves source values, skips invalid rows and duplicate usernames, and writes `src/data/customers.json`. This source contains 715 records: 710 valid, 5 invalid, and no duplicates. Both source and prepared customer data are excluded from Git. A fresh checkout needs the owner's input before running or exporting the app. To update customers, replace the input and run preparation again. Existing invoice snapshots remain unchanged.
-
-The default logo is `src/assets/logo.jpg`. Icons and embedded PDF fonts are included; regenerate after changing source assets with `npm run prepare:assets`.
-
-## Daily use
-
-1. Search by customer name or username and select a result, or enter a customer manually.
-2. Set the plan, price, discount, installation fee, and dates. Package duration fills the time period; internet speed remains separately editable.
-3. Choose Invoice or Paid receipt, then preview, save, export, print, or share.
-
-Desktop shows editor and preview side by side. Mobile has Edit details and Preview tabs, document zoom, and output actions. Search waits 250 ms and shows up to 15 matches. Invoice edits never alter the customer directory. UPI QR codes are generated locally; custom QR images and logos are supported.
-
-Settings apply to new invoices. Current invoices retain their own details. Drafts save automatically. Starting another invoice retains up to ten recent drafts in History; saved invoices can be searched and reopened.
-
-## Android and iOS
-
-```sh
-npm run android
-npm run ios
-```
-
-These start Expo and open the corresponding target when available. Compile with the installed Android SDK or macOS/Xcode:
-
-```sh
-npm run native:android
-npm run native:ios
-```
-
-Native PDF output uses `expo-print`, saves files in the app's documents/invoices directory, and opens the system share sheet through `expo-sharing`. Use Share to send PDFs to WhatsApp, email, or Files. Native PDF generation and the Android share sheet have been verified on the Pixel 9 emulator; physical-device share targets still need testing. iOS compilation requires macOS/Xcode.
-
-### APK and App Bundle
-
-The identifier is `com.marutigigafiber.gigainvoice`. `eas.json` configures an internal preview APK and a production build for future store distribution:
-
-```sh
-npm run prepare:customers
-npx eas-cli login
-npx eas-cli build -p android --profile preview
-# Future Android App Bundle:
-npx eas-cli build -p android --profile production
-```
-
-EAS requires an Expo account, project linking, and signing setup on the first build. `.easignore` includes the prepared customer dataset because the private app requires it. An EAS build uploads that dataset with the project to Expo's build service; use local compilation when data must remain on this computer.
-
-Local Android compilation with the installed SDK and JDK:
-
-```sh
-npx expo prebuild --platform android --no-install
-cd android
-# Windows:
-.\gradlew.bat :app:assembleRelease
-# macOS/Linux:
-./gradlew :app:assembleRelease
-```
-
-The tested APK is available at `artifacts/GigaInvoice.apk`; see [validation results](docs/VALIDATION.md). Local build output: `android/app/build/outputs/apk/release/app-release.apk`. The generated local release configuration uses a development keystore for private testing. Configure your own signing credentials or EAS signing for distribution. Native directories are generated and Git-ignored; durable configuration belongs in `app.json` or Expo config plugins. See [Expo APK instructions](https://docs.expo.dev/build-reference/apk/) and [local build documentation](https://docs.expo.dev/guides/local-app-development/).
-
-## Web and offline use
+On Windows use `npm.cmd` / `npx.cmd` if PowerShell blocks unsigned scripts. Guest mode needs no database credentials. Cloud accounts use only the public project URL and publishable key from `.env.example`, copied into a Git-ignored `.env`.
 
 ```sh
 npm run export:web
 npm run preview
 ```
 
-Open `http://127.0.0.1:4173`. Deploy `dist/` to static hosting; the Node server is only for local preview. `npx expo export --platform web` also produces the base export. The npm export script adds an installable manifest and versioned offline cache. Serve at the domain root over HTTPS or localhost, with clean routes such as `/history` resolving to `history.html`.
+Preview: http://127.0.0.1:4173. Deploy `dist/` at a domain root with routes such as `/profile` resolving to `profile.html`. Production web caches application assets for offline guest use; it does not cache Supabase responses. Signed-in cloud work requires a connection. Browser or app data clearing can erase guest records; keep exported copies.
 
-After the first online load finishes caching, the production website can reopen offline, search customers, edit invoices, and export PDFs. Development mode does not install the cache. Export PDF downloads a file; Print opens browser printing. Web Share uses file sharing where supported, otherwise it downloads the PDF.
+## Use
 
-Customer data is bundled in the APK and website assets. Keep this private build and web hosting restricted to intended users. The app sends no customer information to analytics, QR APIs, or a backend.
+1. Choose Continue as Guest, Create Account or Sign In.
+2. Select one of your saved customers or enter a customer manually. Blank business details are allowed; set your plan, time period, amounts and dates.
+3. Preview, save, export, share or print an invoice or paid receipt. Add your own logo and UPI/custom QR if needed.
+4. Profile manages your personal details, business settings, password and logout. After signing in, choose whether to import local records. Import never runs automatically.
 
-## Persistence and architecture
+Guest storage uses `gigainvoice:v2:guest:*`. Earlier `gigainvoice:v1:*` data is retained separately because it may contain protected business information; approved Maruti members can explicitly review/import it from Profile. Switching accounts destroys the previous workspace's component and repository instances. Cloud business data is not persisted in guest storage.
 
-`StorageService` wraps AsyncStorage under `gigainvoice:v1:*` keys for settings, the current draft, recent drafts, and history. Data stays in browser-local or native application storage and does not sync across devices. Clearing site/app data or uninstalling can remove it. Native PDFs stay in app documents; shared/downloaded copies remain wherever you save them.
+## Database and email links
 
-```text
-Customer UI → CustomerService → CustomerRepository → JsonCustomerRepository
-Invoice history → InvoiceRepository → LocalInvoiceRepository → StorageService
-Invoice data → shared calculations and HTML → platform PdfService
+See [the auth/workspace implementation report](docs/AUTH-WORKSPACES.md) for schema, access rules, verification and setup. Migrations are applied once through a checksum ledger:
+
+```sh
+npm run db:apply
+npm run db:verify
 ```
 
-Customers are validated and indexed once per repository instance. Unicode search normalization preserves source values. Calendar date helpers retain the source day. Calculations discount only the plan price, then add installation fees and round monetary output.
+Trusted administration uses Git-ignored `.env.admin`. Never put a database password, service-role key or admin token in an `EXPO_PUBLIC_*` variable. Keep applied migrations unchanged; add a new file for later changes.
 
-To connect Supabase later, implement `CustomerRepository` (`getAll`, `search`, `getByUsername`) and `InvoiceRepository`, then replace the bindings in `src/services/container.ts`. Keep customer fields unchanged: username, full_name, email, address, package, expiry_date, last_recharge_date. Future tables can include customers, invoices, invoice_items, and business_settings. Add authentication and Row Level Security with that migration. `.env.example` contains inactive placeholders; there is no active Supabase connection.
+Registration requires email confirmation. Add the app's callback and reset URLs under Supabase Authentication → URL Configuration. Native URLs are `gigainvoice://auth-callback` and `gigainvoice://reset-password`; web URLs use the current origin with `/auth-callback` and `/reset-password`. Open PKCE emails on the device/browser where they were requested. Add your deployed HTTPS origin when hosting publicly.
 
-## Validation
+The two approved Maruti emails are maintained in a server-only allowlist. An email entry is not a login account. Registration plus verified email links an approved identity automatically; no other user can grant themselves membership.
+
+## Private customer import
+
+Private input is not required to run or build the app. Trusted preparation writes only to `temp/private-import/`:
+
+```sh
+npm run prepare:customers -- temp/subscribers.json
+npm run db:import:check
+npm run db:import
+```
+
+The importer resolves the configured owner's verified Maruti membership and upserts by workspace/username, preserving customer IDs and inactive status. It rejects an unapproved owner. The original 715 input rows contained 710 valid customers and five invalid rows. Input, prepared data, admin configuration and artifacts are excluded from Git and EAS upload.
+
+## Android / iOS
+
+```sh
+npx expo prebuild --platform android --no-install
+cd android
+./gradlew :app:assembleRelease
+```
+
+Windows uses `.\gradlew.bat`. Use JDK/Android SDK environment paths matching your host. The local APK is `artifacts/GigaInvoice.apk`; this development-signed build is for testing. Configure production signing before store distribution. EAS profiles are also available in `eas.json`. iOS native compilation requires macOS/Xcode and was not performed on this Windows host.
+
+Native PDFs are verified local files before the app reports success or opens the share/print sheet. Downloaded/shared copies remain on the device after logout. Physical-device share targets still require device testing.
+
+If upgrading an older native checkout, remove stale generated `src_assets_logo.jpg` resources from the previous bundle or perform a clean build. Scan release artifacts before distribution:
+
+```sh
+node scripts/verify-public-build.mjs
+```
+
+This local scan requires the original private input and logo under `temp/private-import/`; they are comparison inputs only and are not shipped.
+
+## Checks
 
 ```sh
 npm run typecheck
 npm run lint
 npm test
+npx expo-doctor
 npm run export:web
-npm run export:android
 npm run test:e2e
+npm run db:verify
 ```
 
-Unit tests cover calculations, customer search, source validation, dates, autofill, filename safety, QR payloads, PDF markup, storage failures, and concurrent saves. The source-integrity test uses `temp/subscribers.json`. Browser tests use installed Google Chrome at desktop and Pixel 7 viewport sizes and cover search, receipts, PDFs, history, settings, errors, and offline output. Export web before running them. Android JavaScript export checks bundling; it does not establish successful native compilation or device sharing.
+Tests cover guest isolation/import retries, PostgreSQL membership and RLS, verified allowlist access, private image storage, invoice transactions, calculations, PDFs, persistence, auth forms, recovery callbacks, logout and offline guest journeys. Browser tests use fictional data and mocked Auth except for a separate local real-owner acceptance check. They do not establish delivery of real verification/reset email.

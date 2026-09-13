@@ -33,8 +33,8 @@ async function main() {
   matches.sort((a, b) => b.result.customers.length - a.result.customers.length);
   const selected = matches[0];
   if (!selected) throw new Error('No matching customer JSON found. Put the supplied file in temp/ or run npm run prepare:customers -- path/to/customers.json. Existing prepared data was not changed.');
-  await mkdir('src/data', { recursive: true });
-  await writeFile('src/data/customers.json', JSON.stringify(selected.result.customers, null, 2) + '\n', 'utf8');
+  await mkdir('temp/private-import', { recursive: true });
+  await writeFile('temp/private-import/customers.json', JSON.stringify(selected.result.customers, null, 2) + '\n', 'utf8');
   console.info(`Customer source: ${path.relative(process.cwd(), selected.file)}\nTotal records: ${selected.result.total}\nValid records: ${selected.result.customers.length}\nInvalid records: ${selected.result.invalid}\nDuplicate usernames: ${selected.result.duplicates}\nCustomer dataset prepared successfully.`);
 }
 main().catch(error => { console.error(error instanceof Error ? error.message : 'Customer import failed.'); process.exitCode = 1; });

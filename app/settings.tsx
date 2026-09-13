@@ -12,10 +12,14 @@ import { FormRow } from '../src/components/common/FormRow';
 import { ImageUpload } from '../src/components/common/ImageUpload';
 import { AccentPicker } from '../src/components/common/AccentPicker';
 import { Button } from '../src/components/common/Button';
+import { useWorkspace } from '../src/state/WorkspaceProvider';
+import { useRouter } from 'expo-router';
 import { colors, fonts, shared } from '../src/theme';
 
 export default function SettingsScreen() {
   const { settings, saveSettings } = useApp();
+  const { cloud } = useWorkspace();
+  const router = useRouter();
   const notify = useToast();
   const [busy, setBusy] = useState(false);
   const form = useForm<BusinessSettings>({ defaultValues: settings, resolver: zodResolver(settingsSchema), mode: 'onBlur' });
@@ -24,7 +28,7 @@ export default function SettingsScreen() {
   const save = form.handleSubmit(async data => {
     setBusy(true);
     try { await saveSettings(data); form.reset(data); notify('Settings saved. New invoices will use these defaults.'); }
-    catch { notify('Settings could not be saved. Check your device storage and try again.', 'error'); }
+    catch { notify('Settings could not be saved. Check your connection or device storage and try again.', 'error'); }
     finally { setBusy(false); }
   }, () => notify('Check the highlighted settings.', 'error'));
   return <KeyboardAvoidingView style={shared.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -49,8 +53,9 @@ export default function SettingsScreen() {
         {field('currencySymbol', 'Default currency symbol', { maxLength: 8 })}
         <Controller control={form.control} name="accentColor" render={({ field }) => <AccentPicker value={field.value} onChange={field.onChange} />} />
       </View>
-      <Text style={shared.subtitle}>Saved on this device. These defaults apply to new invoices. Your current invoice keeps its own details.</Text>
+      <Text style={shared.subtitle}>{cloud ? 'Saved to your cloud workspace.' : 'Saved on this device.'} These defaults apply to new invoices. Your current invoice keeps its own details.</Text>
       <Button title="Save settings" variant="primary" busy={busy} icon={<Save size={18} color="white" />} onPress={() => { void save(); }} />
+      <Button title="Account & profile" onPress={() => router.push('/profile')} />
     </ScrollView>
   </KeyboardAvoidingView>;
 }
