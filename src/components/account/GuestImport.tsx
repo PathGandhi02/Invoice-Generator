@@ -3,28 +3,35 @@ import { Text, View } from 'react-native';
 import { useAuth } from '../../state/AuthProvider';
 import { useApp } from '../../state/AppProvider';
 import { useWorkspace } from '../../state/WorkspaceProvider';
-import { guestStorage, legacyStorage, preferencesStorage } from '../../services/container';
+import { legacyStorage, preferencesStorage } from '../../services/container';
+import { useGuestData } from '../../state/GuestDataProvider';
 import { importLocalData, inspectLocalData, type LocalData } from '../../services/GuestMigrationService';
 import { Button } from '../common/Button';
 import { Toggle } from '../common/Toggle';
 import { colors, shared } from '../../theme';
 
 export function GuestImport({ legacy = false }: { legacy?: boolean }) {
+  const { state } = useGuestData();
+  return <GuestImportContent key={legacy ? 'legacy' : state?.generation} legacy={legacy} />;
+}
+function GuestImportContent({ legacy }: { legacy: boolean }) {
   const { business, user } = useAuth();
+  const { storage: guestStorage, state: guestState } = useGuestData();
   const { customers, invoices, scope } = useWorkspace();
   const { saveSettings, openInvoice } = useApp();
   const [data, setData] = useState<LocalData | null>(null), [hidden, setHidden] = useState(false), [busy, setBusy] = useState(false);
   const [error, setError] = useState(''), [done, setDone] = useState('');
   const [addCustomers, setAddCustomers] = useState(false), [addSettings, setAddSettings] = useState(false), [addDraft, setAddDraft] = useState(false), [confirm, setConfirm] = useState(false);
   const protectedBusiness = !!business?.protected_key;
-  const key = `import-choice:${scope}:${legacy ? 'legacy' : 'guest'}`;
+  const sourceScope = legacy ? 'legacy' : guestState?.generation === 'initial' ? 'guest' : `guest-${guestState?.generation}`;
+  const key = `import-choice:${scope}:${sourceScope}`;
   useEffect(() => {
-    if (!user || (legacy && !protectedBusiness)) return;
+    if (!user || (legacy && !protectedBusiness) || (!legacy && (!guestStorage || guestState?.resetting))) return;
     let active = true;
-    void Promise.all([inspectLocalData(legacy ? legacyStorage : guestStorage), preferencesStorage.get<string>(key)]).then(([local, choice]) => { if (active) { setData(local); setHidden(choice === 'separate' || choice === 'imported'); } }).catch(() => { if (active) setError('Local records could not be read. They have been kept on this device.'); });
+    void Promise.all([inspectLocalData(legacy ? legacyStorage : guestStorage!), preferencesStorage.get<string>(key)]).then(([local, choice]) => { if (active) { setData(local); setHidden(choice === 'separate' || choice === 'imported'); } }).catch(() => { if (active) setError('Local records could not be read. They have been kept on this device.'); });
     return () => { active = false; };
-  }, [user, protectedBusiness, legacy, key]);
-  if (!user || (legacy && !protectedBusiness)) return null;
+  }, [user, protectedBusiness, legacy, key, guestStorage, guestState?.resetting]);
+  if (!user || (legacy && !protectedBusiness) || (!legacy && (!guestStorage || guestState?.resetting))) return null;
   const hasData = data && (data.customers.length || data.invoices.length || data.settings || data.draft);
   if (!hasData && !error) return null;
   if (hidden) return <Button title={legacy ? 'Review earlier device data' : 'Review guest import'} variant="ghost" onPress={() => setHidden(false)} />;
@@ -32,7 +39,7 @@ export function GuestImport({ legacy = false }: { legacy?: boolean }) {
     if (!data || busy) return;
     setBusy(true); setError(''); setDone('');
     try {
-      const count = await importLocalData(data, { customers, invoices, saveSettings, openInvoice }, { customers: addCustomers, settings: addSettings, draft: addDraft, protectedBusiness, confirmMaster: confirm }, preferencesStorage, `${scope}:${legacy ? 'legacy' : 'guest'}`);
+      const count = await importLocalData(data, { customers, invoices, saveSettings, openInvoice }, { customers: addCustomers, settings: addSettings, draft: addDraft, protectedBusiness, confirmMaster: confirm }, preferencesStorage, `${scope}:${sourceScope}`, async () => { if (!legacy) await guestStorage!.get('draft'); });
       await preferencesStorage.set(key, 'imported');
       setDone(`Import complete: ${count} records saved. Local copies remain on this device.`);
     } catch (e) { setError(e instanceof Error ? e.message : 'Import stopped. Retry safely; your local data remains intact.'); }

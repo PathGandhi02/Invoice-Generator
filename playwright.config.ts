@@ -6,10 +6,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
-  use: { baseURL: 'http://127.0.0.1:4173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
+  use: { baseURL: process.env.GIGAINVOICE_TEST_URL || 'http://127.0.0.1:4173', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [
     { name: 'desktop-chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: { width: 1440, height: 1080 } } },
     { name: 'mobile-chrome', use: { ...devices['Pixel 7'], channel: 'chrome' } },
   ],
-  webServer: { command: 'node scripts/serve-web.mjs', url: 'http://127.0.0.1:4173', reuseExistingServer: true },
+  webServer: process.env.GIGAINVOICE_TEST_URL ? undefined : { command: 'node scripts/serve-web.mjs', url: 'http://127.0.0.1:4173', reuseExistingServer: true },
 });

@@ -20,12 +20,13 @@ function digest(value: unknown) {
   for (let i = 0; i < text.length; i++) { a = Math.imul(a ^ text.charCodeAt(i), 16777619); b = Math.imul(b, 33) ^ text.charCodeAt(i); }
   return `${text.length}:${a >>> 0}:${b >>> 0}`;
 }
-export async function importLocalData(data: LocalData, target: { customers: WorkspaceCustomers; invoices: InvoiceRepository; saveSettings: (s: BusinessSettings) => Promise<void>; openInvoice: (d: InvoiceData) => Promise<void>; }, options: ImportOptions, journal: Persistence, scope: string) {
+export async function importLocalData(data: LocalData, target: { customers: WorkspaceCustomers; invoices: Pick<InvoiceRepository, 'save'>; saveSettings: (s: BusinessSettings) => Promise<void>; openInvoice: (d: InvoiceData) => Promise<void>; }, options: ImportOptions, journal: Persistence, scope: string, checkSource: () => Promise<unknown> = async () => {}) {
   if (options.customers && options.protectedBusiness && !options.confirmMaster) throw new Error('Confirm adding local customers to the shared master list first.');
   let completed = 0;
   // Only completed operations are journaled. Stable IDs make retries safe if a
   // request reaches the server but its response or local journal write is lost.
   const once = async (kind: string, id: string, value: unknown, action: () => Promise<unknown>) => {
+    await checkSource();
     const key = `import:${scope}:${kind}:${id}`;
     const fingerprint = digest(value);
     if (await journal.get<string>(key) === fingerprint) return;

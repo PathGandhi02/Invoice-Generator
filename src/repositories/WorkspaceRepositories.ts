@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database,Json,InvoiceRow } from '../models/Database';
 import type { Customer } from '../models/Customer';
-import type { Invoice } from '../models/Invoice';
+import type { Invoice, InvoiceSummary } from '../models/Invoice';
 import { defaultSettings,type BusinessSettings } from '../models/BusinessSettings';
 import { settingsSchema,invoiceSchema,historyRecordSchema,imageDataSchema } from '../schemas/invoiceSchema';
 import { customerSchema,validateCustomers } from '../schemas/customerSchema';
@@ -10,12 +10,12 @@ import type { InvoiceRepository } from './InvoiceRepository';
 import { normalizeSearch } from '../utils/search';
 import { toHistoryRecord } from '../services/InvoiceService';
 
-export type Persistence=Pick<StorageService,'get'|'set'>;
+export type Persistence=Pick<StorageService,'get'|'set'> & Partial<Pick<StorageService,'flush'>>;
 export interface WorkspaceCustomers {count():Promise<number>;search(query:string):Promise<Customer[]>;save(customer:Customer):Promise<void>;getAll():Promise<Customer[]>;}
 export class LocalCustomerRepository implements WorkspaceCustomers {
   private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:Persistence){}
-  async getAll(){return validateCustomers(await this.storage.get('customers')??[]).customers;}
+  async getAll(){const result=validateCustomers(await this.storage.get('customers')??[]);if(result.invalid||result.duplicates)throw new Error('Saved customers could not be read completely. Existing data has been kept; clear guest data in Settings to recover.');return result.customers;}
   async count(){return(await this.getAll()).length;}
   async search(query:string){if(query.trim().length<2)return[];const term=normalizeSearch(query);return(await this.getAll()).filter(c=>normalizeSearch(`${c.username} ${c.full_name}`).includes(term)).slice(0,15);}
   save(customer:Customer){const op=this.pending.catch(()=>{}).then(async()=>{const valid=customerSchema.parse(customer);const rows=await this.getAll();await this.storage.set('customers',[valid,...rows.filter(c=>c.username!==valid.username)]);});this.pending=op;return op;}
@@ -35,6 +35,22 @@ function fromCloudInvoice(row:Pick<InvoiceRow,'id'|'local_id'|'document'|'create
 }
 export class CloudInvoiceRepository implements InvoiceRepository {
   constructor(private readonly client:SupabaseClient<Database>,readonly businessId:string){}
+  async summaries(query:string):Promise<InvoiceSummary[]> {
+    const all:InvoiceSummary[]=[];
+    for(let offset=0;;offset+=500){
+      const {data,error}=await this.client.from('invoices').select('id,invoice_number,customer_name,customer_username,start_date,total_amount,is_paid,created_at,currency_symbol').eq('business_id',this.businessId).order('created_at',{ascending:false}).order('id').range(offset,offset+499);
+      if(error)throw new Error('Cloud history is unavailable.');
+      all.push(...(data??[]).map(row=>({id:row.id,invoiceNumber:row.invoice_number,customerName:row.customer_name,customerUsername:row.customer_username??undefined,date:row.start_date??'',total:row.total_amount,isPaid:row.is_paid,savedAt:row.created_at,currencySymbol:row.currency_symbol})));
+      if(!data||data.length<500)break;
+    }
+    const term=normalizeSearch(query);
+    return all.filter(row=>normalizeSearch(`${row.customerName} ${row.customerUsername??''} ${row.invoiceNumber}`).includes(term));
+  }
+  async get(id:string):Promise<Invoice>{
+    const {data,error}=await this.client.from('invoices').select('id,local_id,document,created_at,invoice_number,customer_name,start_date,total_amount,is_paid').eq('business_id',this.businessId).eq('id',id).single();
+    if(error||!data)throw new Error('This invoice could not be opened. Reload history and try again.');
+    return fromCloudInvoice(data);
+  }
   async save(invoice:Invoice){const valid=historyRecordSchema.parse(invoice);const {error}=await this.client.rpc('save_invoice_document',{target_business_id:this.businessId,payload:valid.data as unknown as Json});if(error)throw new Error(error.code==='23505'?'That invoice number already exists in this workspace.':'Invoice could not be saved to the cloud. Check your connection.');}
   async getAll(){const all:Invoice[]=[];for(let offset=0;;offset+=100){const {data,error}=await this.client.from('invoices').select('id,local_id,document,created_at,invoice_number,customer_name,start_date,total_amount,is_paid').eq('business_id',this.businessId).order('created_at',{ascending:false}).range(offset,offset+99);if(error)throw new Error('Cloud history is unavailable.');all.push(...(data??[]).map(fromCloudInvoice));if(!data||data.length<100)return all;}}
   async search(query:string){const term=normalizeSearch(query);return(await this.getAll()).filter(r=>normalizeSearch(`${r.customerName} ${r.customerUsername??''} ${r.invoiceNumber}`).includes(term));}

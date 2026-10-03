@@ -48,7 +48,7 @@ export function InvoiceEditor() {
       {data.customerUsername ? <SelectedCustomerCard invoice={data} onChange={() => { reset(clearCustomer(getValues())); setManual(false); }} />
         : !manual && !data.customerName ? <CustomerSearch onSelect={customer => { reset(autofillCustomer(getValues(), customer)); setManual(false); }} onManual={() => setManual(true)} />
           : <Button title="Search customer directory" variant="ghost" onPress={() => { reset(clearCustomer(getValues())); setManual(false); }} />}
-      {(data.customerUsername || manual || data.customerName) && <>
+      {(!!data.customerUsername || manual || !!data.customerName) && <>
         <Text style={[shared.subtitle, { fontSize: 11 }]}>These details apply to this invoice.</Text>
         {field('customerName', 'Customer name', { autoCapitalize: 'words' })}
         {field('customerPhone', 'Customer phone', { keyboardType: 'phone-pad' })}

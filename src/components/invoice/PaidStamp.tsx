@@ -15,11 +15,11 @@ export function PaidStamp({ date }: { date: string }) {
   }, [progress]);
   return <Animated.View pointerEvents="none" style={[styles.stamp, {
     opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 0.75] }),
-    transform: [{ rotate: progress.interpolate({ inputRange: [0, 1], outputRange: ['-30deg', '-18deg'] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [2, 1] }) }],
+    transform: [{ rotate: progress.interpolate({ inputRange: [0, 1], outputRange: ['-12deg', '-8deg'] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
   }]}><Text style={styles.text}>PAID</Text><Text style={styles.date}>{formatDate(date)}</Text></Animated.View>;
 }
 const styles = StyleSheet.create({
-  stamp: { position: 'absolute', top: 510, left: 265, zIndex: 1, borderWidth: 5, borderColor: '#169362', borderRadius: 10, paddingHorizontal: 22, paddingVertical: 8, alignItems: 'center' },
-  text: { fontFamily: fonts.brand, fontSize: 43, letterSpacing: 7, color: '#168359' },
-  date: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 2, color: '#168359' },
+  stamp: { width: 150, alignSelf: 'flex-start', marginTop: 14, marginHorizontal: 6, borderWidth: 4, borderColor: '#169362', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center' },
+  text: { fontFamily: fonts.brand, fontSize: 28, letterSpacing: 4, color: '#168359' },
+  date: { fontFamily: fonts.bold, fontSize: 10, letterSpacing: 1, color: '#168359' },
 });

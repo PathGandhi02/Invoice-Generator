@@ -24,7 +24,6 @@ export function InvoicePreview({ invoice, fullSize = false }: { invoice: Invoice
       <View style={{ width: 820 * scale, height: paperHeight * scale, overflow: 'hidden', backgroundColor: 'white' }}>
         <View testID="invoice-paper" onLayout={event => setPaperHeight(event.nativeEvent.layout.height)}
           style={[styles.paper, { transform: [{ scale }], transformOrigin: 'top left' }]}>
-          {invoice.isPaid && <PaidStamp date={invoice.dueDate} />}
           <View style={styles.header}>
             {invoice.customLogo && !logoError && <Image accessibilityLabel="Business logo" source={{ uri: invoice.customLogo }}
               onError={() => setLogoError(true)} resizeMode="contain" style={styles.logo} />}
@@ -59,7 +58,10 @@ export function InvoicePreview({ invoice, fullSize = false }: { invoice: Invoice
             </View>
           </View>
           <View style={styles.footer}>
-            <View style={{ flex: 1, gap: 18 }}><PaymentQr invoice={invoice} />
+            <View style={{ flex: 1, gap: 18 }}><View style={{ flexDirection: 'row', gap: 18, alignItems: 'flex-start' }}>
+              {invoice.showQr && <View style={{ flex: 1 }}><PaymentQr invoice={invoice} /></View>}
+              {invoice.isPaid && <PaidStamp date={invoice.dueDate} />}
+            </View>
               {!!invoice.paymentMethod && <View style={{ gap: 5 }}><Text style={styles.label}>PAYMENT METHOD</Text><Text style={styles.detail}>{invoice.paymentMethod}</Text></View>}
             </View>
             <View style={{ width: 300, gap: 17 }}>

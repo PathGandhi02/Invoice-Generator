@@ -11,6 +11,7 @@ import { useToast } from './ToastProvider';
 import { useAuth } from './AuthProvider';
 import { Button } from '../components/common/Button';
 import { shared } from '../theme';
+import { ClearGuestData } from '../components/account/ClearGuestData';
 
 interface AppContextValue {
   form: UseFormReturn<InvoiceData>;
@@ -61,6 +62,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settingsRef.current = saved;
       setSettings(saved);
       const draft = storedDraft.status === 'fulfilled' && storedDraft.value ? draftSchema.safeParse(storedDraft.value) : null;
+      const recentValue = storedDrafts.status === 'fulfilled' ? storedDrafts.value : null;
+      if ((business && !business.success) || (draft && !draft.success) ||
+        (recentValue !== null && (!Array.isArray(recentValue) || recentValue.some(value => !draftSchema.safeParse(value).success)))) {
+        setRestoreError(true); return;
+      }
       reset(draft?.success ? draft.data : createDraft(saved));
       if (storedDrafts.status === 'fulfilled' && Array.isArray(storedDrafts.value)) {
         const recent = storedDrafts.value.flatMap(value => { const result = draftSchema.safeParse(value); return result.success ? [result.data] : []; });
@@ -88,7 +94,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       for (const key of ['price', 'discount', 'installationCharges'] as const) {
         if (typeof values[key] !== 'number' || !Number.isFinite(values[key])) values[key] = 0;
       }
-      return storageService.set('draft', values).then(() => {
+      let saving: Promise<void>;
+      try { saving = storageService.flush?.('draft', values) ? Promise.resolve() : storageService.set('draft', values); }
+      catch(error) { saving = Promise.reject(error); }
+      return saving.then(() => {
         if (active) setDraftStatus('saved');
         reported = false;
       }).catch(() => {
@@ -144,7 +153,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void saveSettings({ ...settingsRef.current, accentColor: color }).catch(() => notify('Accent could not be saved as a default.', 'error'));
   }, [form, notify, saveSettings]);
 
-  if (restoreError) return <View style={[shared.content, { flex: 1, justifyContent: 'center' }]}><Text style={shared.title}>Your saved workspace could not be restored.</Text><Text style={shared.subtitle}>Check your connection or device storage. Existing records have been kept.</Text><Button title="Retry workspace" onPress={() => { setRestoreError(false); setRevision(n => n + 1); }} />{cloud && <Button title="Sign out" onPress={() => { void signOut().catch(() => {}); }} />}</View>;
+  if (restoreError) return <View style={[shared.content, { flex: 1, justifyContent: 'center' }]}><Text style={shared.title}>Your saved workspace could not be restored.</Text><Text style={shared.subtitle}>Check your connection or device storage. Existing records have been kept.</Text><Button title="Retry workspace" onPress={() => { setRestoreError(false); setRevision(n => n + 1); }} />{cloud ? <Button title="Sign out" onPress={() => { void signOut().catch(() => {}); }} /> : <ClearGuestData />}</View>;
   return <AppContext.Provider value={{ form, ready, settings, draftStatus, drafts, saveSettings, saveInvoice, newInvoice, openInvoice, setAccent }}>
     <FormProvider {...form}>{children}</FormProvider>
   </AppContext.Provider>;

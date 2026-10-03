@@ -47,3 +47,9 @@ export interface Invoice {
   savedAt: string;
   data: InvoiceData;
 }
+
+export type InvoiceSummary = Omit<Invoice, 'data'> & { currencySymbol: string };
+export function summarizeInvoice(invoice: Invoice): InvoiceSummary {
+  const { data, ...summary } = invoice;
+  return { ...summary, currencySymbol: data.currencySymbol };
+}

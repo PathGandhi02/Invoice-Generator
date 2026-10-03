@@ -15,6 +15,7 @@ import { Button } from '../src/components/common/Button';
 import { useWorkspace } from '../src/state/WorkspaceProvider';
 import { useRouter } from 'expo-router';
 import { colors, fonts, shared } from '../src/theme';
+import { ClearGuestData } from '../src/components/account/ClearGuestData';
 
 export default function SettingsScreen() {
   const { settings, saveSettings } = useApp();
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
       <Text style={shared.subtitle}>{cloud ? 'Saved to your cloud workspace.' : 'Saved on this device.'} These defaults apply to new invoices. Your current invoice keeps its own details.</Text>
       <Button title="Save settings" variant="primary" busy={busy} icon={<Save size={18} color="white" />} onPress={() => { void save(); }} />
       <Button title="Account & profile" onPress={() => router.push('/profile')} />
+      {!cloud && <ClearGuestData />}
     </ScrollView>
   </KeyboardAvoidingView>;
 }

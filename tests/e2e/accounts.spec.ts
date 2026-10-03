@@ -44,6 +44,24 @@ test('guest draft requires explicit import and local copy survives',async({page}
  await expect.poll(()=>page.evaluate(()=>localStorage.getItem('gigainvoice:v2:guest:draft'))).toContain('Guest Draft Customer');await signIn(page);await expect(page.getByText('Bring your guest work with you?',{exact:true})).toBeVisible();expect(cloud.invoices).toHaveLength(0);expect(cloud.drafts.size).toBe(0);
  await page.getByRole('switch',{name:'Open my local draft in this account',exact:true}).click();await page.getByRole('button',{name:'Import to My Account',exact:true}).click();await expect(page.getByText('Import complete:',{exact:false})).toBeVisible();await page.getByRole('link',{name:'Invoice',exact:true}).click();await expect(page.getByRole('textbox',{name:'Customer name',exact:true})).toHaveValue('Guest Draft Customer');expect(await page.evaluate(()=>localStorage.getItem('gigainvoice:v2:guest:draft'))).toContain('Guest Draft Customer');
 });
+
+test('reset generation leaves cloud imports intact and new guest work remains explicitly reviewable',async({page})=>{
+ const cloud=await mockCloud(page);
+ await page.goto('/');await page.getByRole('button',{name:'Continue as Guest',exact:true}).click();
+ await page.getByRole('button',{name:'Enter customer manually'}).click();await page.getByRole('textbox',{name:'Customer name',exact:true}).fill('First local draft');
+ await expect.poll(()=>page.evaluate(()=>localStorage.getItem('gigainvoice:v2:guest:draft'))).toContain('First local draft');
+ await signIn(page);await page.getByRole('switch',{name:'Open my local draft in this account',exact:true}).click();await page.getByRole('button',{name:'Import to My Account',exact:true}).click();
+ await expect(page.getByText('Import complete:',{exact:false})).toBeVisible();
+ await page.getByRole('link',{name:'Settings',exact:true}).click();await expect(page.getByRole('button',{name:'Clear guest data on this device',exact:true})).toHaveCount(0);
+ const before=JSON.stringify([...cloud.drafts.entries()]);
+ await page.getByRole('link',{name:'Profile',exact:true}).click();await page.getByRole('button',{name:'Sign out',exact:true}).click();
+ await page.getByRole('link',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Clear guest data on this device',exact:true}).click();await page.getByRole('button',{name:'Clear guest data',exact:true}).click();
+ await expect(page.getByRole('textbox',{name:'Search customers'})).toBeVisible();expect(JSON.stringify([...cloud.drafts.entries()])).toBe(before);
+ await page.getByRole('button',{name:'Enter customer manually'}).click();await page.getByRole('textbox',{name:'Customer name',exact:true}).fill('Fresh generation draft');
+ await expect(page.getByText('Draft saved on this device',{exact:true})).toBeVisible();await signIn(page);
+ await expect(page.getByText('Bring your guest work with you?',{exact:true})).toBeVisible();
+ expect(JSON.stringify([...cloud.drafts.entries()])).toBe(before);
+});
 test('registration validation, verification resend and password reset callback URLs',async({page})=>{
  await page.route('**/auth/v1/signup?**',route=>route.fulfill({json:{user:{id:uid,identities:[]},session:null}}));await page.route('**/auth/v1/recover?**',route=>route.fulfill({json:{}}));await page.route('**/auth/v1/resend?**',route=>route.fulfill({json:{}}));
  await page.goto('/register');await page.getByRole('textbox',{name:'Full name',exact:true}).fill('Test Registration');await page.getByRole('textbox',{name:'Email',exact:true}).fill('register@example.test');await page.getByRole('textbox',{name:'Password',exact:true}).fill('test-pass-123');await page.getByRole('textbox',{name:'Confirm password',exact:true}).fill('mismatch');await page.getByRole('button',{name:'Create Account',exact:true}).click();await expect(page.getByText('Use 8–72 characters',{exact:false})).toBeVisible();

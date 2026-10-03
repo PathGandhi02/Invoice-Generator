@@ -23,6 +23,7 @@
     "lint": "expo lint --no-cache",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
+    "benchmark:invoices": "node --import tsx scripts/benchmark-invoices.ts artifacts/invoice-benchmark-after.json",
     "build:apk": "npx eas-cli build -p android --profile preview",
     "db:inspect": "node --env-file=.env --env-file=.env.admin --import tsx scripts/migrate-supabase.ts",
     "db:apply": "node --env-file=.env --env-file=.env.admin --import tsx scripts/migrate-supabase.ts --apply",

@@ -27,6 +27,10 @@ Preview: http://127.0.0.1:4173. Deploy `dist/` at a domain root with routes such
 
 Guest storage uses `gigainvoice:v2:guest:*`. Earlier `gigainvoice:v1:*` data is retained separately because it may contain protected business information; approved Maruti members can explicitly review/import it from Profile. Switching accounts destroys the previous workspace's component and repository instances. Cloud business data is not persisted in guest storage.
 
+Guest Settings includes **Clear guest data on this device**, with confirmation and recovery after an interrupted reset. It removes local guest records and embedded images while preserving separately protected legacy records, account sessions and exported PDFs. Other open guest windows are invalidated. Web updates wait until all app windows close; finish your work before reopening to activate an update.
+
+See [invoice and guest/offline acceptance](docs/INVOICE-GUEST-OFFLINE-ACCEPTANCE.md) for measured storage limits, current candidate artifacts, physical-device evidence and outstanding hosted checks. Reproduce the synthetic repository benchmark with `npm run benchmark:invoices`; browser fixtures run with `npm run test:e2e`. Set `GIGAINVOICE_TEST_URL` to an authorized test origin for browser checks; the two-build update harness always uses an isolated local origin.
+
 ## Database and email links
 
 See [the auth/workspace implementation report](docs/AUTH-WORKSPACES.md) for schema, access rules, verification and setup. Migrations are applied once through a checksum ledger:
